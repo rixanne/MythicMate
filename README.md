@@ -24,7 +24,11 @@ Start looking for members for a Mythic+ run.
 
 This command creates an interactive embed where others can join by reacting to select their role (Tank, Healer, DPS). Once all roles are filled, the bot marks the group as ready.
 
-## Getting Started
+## Add The Bot
+Just click the link below to add the bot to your server. If you would prefer to host the bot on your own server, you can do so using the instructions below.
+Click [here](https://discord.com/oauth2/authorize?client_id=1271394615119056918&permissions=268789824&integration_type=0&scope=bot) to invite MythicMate to your Discord server.
+
+## Getting Started (Self Hosting)
 
 ### Prerequisites
 
@@ -61,6 +65,18 @@ If you prefer to run the bot in a Docker container:
 2. Run the Bot:
    ```bash
    docker-compose up -d
+
+## Required Permissions
+
+To function correctly, MythicMate requires the following Discord permissions:
+
+- **Read Messages:** `READ_MESSAGE_HISTORY`
+- **Send Messages:** `SEND_MESSAGES`
+- **Embed Links:** `EMBED_LINKS`
+- **Add Reactions:** `ADD_REACTIONS`
+- **Manage Messages:** `MANAGE_MESSAGES`
+- **Use External Emojis:** `USE_EXTERNAL_EMOJIS`
+- **Manage Roles:** `MANAGE_ROLES` (Optional, if implementing role assignments)
 
 ### Contributing
 We welcome contributions! Please follow these steps:
