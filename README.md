@@ -4,6 +4,10 @@
 
 **MythicMate** is a powerful and intuitive Discord bot designed for World of Warcraft players who love tackling Mythic+ dungeons. This bot helps you quickly form balanced groups, manage roles, and streamline your dungeon runs. Whether you're a tank, healer, or DPS, MythicMate ensures everyone is in the right place for successful runs.
 
+## Invite MythicMate to Your Server
+
+Click [here](https://discord.com/oauth2/authorize?client_id=1271394615119056918&permissions=268789824&integration_type=0&scope=bot) to invite MythicMate to your Discord server.
+
 ## Features
 
 - **Group Formation:** Quickly create and manage Mythic+ dungeon groups.
@@ -23,10 +27,6 @@ Start looking for members for a Mythic+ run.
 - **Example:** `/lfm dungeon:mots key_level:+10 role:tank`
 
 This command creates an interactive embed where others can join by reacting to select their role (Tank, Healer, DPS). Once all roles are filled, the bot marks the group as ready.
-
-## Add The Bot
-Just click the link below to add the bot to your server. If you would prefer to host the bot on your own server, you can do so using the instructions below.
-Click [here](https://discord.com/oauth2/authorize?client_id=1271394615119056918&permissions=268789824&integration_type=0&scope=bot) to invite MythicMate to your Discord server.
 
 ## Getting Started (Self Hosting)
 
