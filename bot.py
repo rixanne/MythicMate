@@ -133,8 +133,9 @@ async def lfm(interaction: discord.Interaction, dungeon: str, key_level: str, ro
         except discord.errors.HTTPException as e:
             if e.status == 401:
                 # If editing fails due to an invalid webhook token, recreate the message
-                new_group_message = await interaction.followup.send(embed=embed)
+                new_group_message = await interaction.channel.send(embed=embed)
                 await group_message.delete()  # Delete the old message
+		global group_message #Reassign the global group_message variable
                 return new_group_message
             else:
                 raise e
