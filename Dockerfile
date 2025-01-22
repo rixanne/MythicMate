@@ -10,8 +10,8 @@ COPY . .
 # Install any necessary dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Define environment variable
-ENV BOT_TOKEN=your_discord_bot_token_here
+# The BOT_TOKEN will be provided via environment variables or .env file
+ENV BOT_TOKEN=insert_token_here
 
 # Run bot.py when the container launches
-CMD ["python", "./bot.py"]
+CMD ["python", "-u","./bot.py"]
