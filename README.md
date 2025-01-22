@@ -1,7 +1,5 @@
 # MythicMate
 
-![MythicMate Logo](https://i.ibb.co/VN6xF2j/DALL-E-2024-08-09-11-59-17-A-clean-and-modern-icon-representing-a-World-of-Warcraft-Mythic-dungeon-c.png) <!-- Replace with the actual path to your logo if you have one -->
-
 **MythicMate** is a powerful and intuitive Discord bot designed for World of Warcraft players who love tackling Mythic+ dungeons. This bot helps you quickly form balanced groups, manage roles, and streamline your dungeon runs. Whether you're a tank, healer, or DPS, MythicMate ensures everyone is in the right place for successful runs.
 
 ## Latest Updates (v1.1.0)
