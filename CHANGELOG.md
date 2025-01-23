@@ -2,6 +2,23 @@
 
 All notable changes to MythicMate will be documented in this file.
 
+## [1.1.1] - 2025-01-23
+
+### Fixed
+- Resolved webhook expiration issues causing reaction failures
+  - Changed message creation method to use channel.send instead of interaction responses
+  - Improved message update mechanism with proper error handling
+
+### Added
+- Improved logging system
+  - Added structured logging with timestamps and log levels
+  - Better error handling and reconnection logic for Discord gateway issues
+
+### Technical
+- Implemented robust reconnection handling for Discord gateway disconnects
+- Improved error handling for guild-only commands
+- Added checks to prevent DM usage of server-specific commands
+
 ## [1.1.0] - 2025-01-22
 
 ### Added
@@ -52,5 +69,6 @@ All notable changes to MythicMate will be documented in this file.
 - Interactive embeds
 - Group completion tracking
 
+[1.1.1]: https://github.com/YourUsername/MythicMate/compare/v1.1.0...v1.1.1
 [1.1.0]: https://github.com/YourUsername/MythicMate/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/YourUsername/MythicMate/releases/tag/v1.0.0 

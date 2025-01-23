@@ -21,7 +21,6 @@ print(f"Token length: {len(TOKEN) if TOKEN else 0}")
 
 # Configure the bot with the necessary intents (permissions)
 intents = discord.Intents.default()
-intents.message_content = True
 intents.reactions = True
 intents.guilds = True
 
@@ -120,7 +119,18 @@ async def update_group_embed(message, embed, group_state):
         if backup_text:
             embed.add_field(name="📋 Backups", value=backup_text.strip(), inline=False)
 
-        await message.edit(embed=embed)
+        # Changed to use fetch_message and edit
+        try:
+            # Fetch a fresh message object before editing
+            current_message = await message.channel.fetch_message(message.id)
+            await current_message.edit(embed=embed)
+        except discord.NotFound:
+            print("Message not found - it may have been deleted")
+        except discord.Forbidden:
+            print("Bot doesn't have permission to edit the message")
+        except Exception as e:
+            print(f"Error updating message: {e}")
+
     except Exception as e:
         print(f"Error in update_group_embed: {e}")
 
@@ -176,11 +186,7 @@ async def lfm(interaction: discord.Interaction, dungeon: str, key_level: str, ro
 
     # Format schedule string and send initial response
     schedule_str = "now" if not schedule_time else schedule_time.strftime("%Y-%m-%d %H:%M")
-    await interaction.response.send_message(
-        f"Starting group for {full_dungeon_name} (Key: {key_level}) as {role}.\n"
-        f"Scheduled for: {schedule_str}.",
-        ephemeral=True
-    )
+    await interaction.response.defer()
 
     # Initialize group state and create embed
     group_state = GroupState(interaction, role, schedule_time)
@@ -192,8 +198,8 @@ async def lfm(interaction: discord.Interaction, dungeon: str, key_level: str, ro
     embed.set_author(name=interaction.user.display_name, icon_url=interaction.user.avatar.url)
     embed.set_thumbnail(url="https://example.com/path/to/your/image.png")
 
-    # Create and store group message
-    group_message = await interaction.followup.send(embed=embed)
+    # Create and store group message - Changed to use channel.send instead of interaction.followup
+    group_message = await interaction.channel.send(embed=embed)
     active_groups[group_message.id] = {
         "state": group_state,
         "embed": embed,
@@ -502,6 +508,7 @@ def create_connection():
 
 # Modify the stats command to include server_id
 @bot.tree.command(name="mystats", description="View your M+ statistics")
+@app_commands.guild_only()
 async def mystats(interaction: discord.Interaction):
     conn = create_connection()
     if conn is None:
@@ -550,6 +557,7 @@ async def mystats(interaction: discord.Interaction):
         conn.close()
 
 @bot.tree.command(name="leaderboard", description="View M+ leaderboards")
+@app_commands.guild_only()
 async def leaderboard(interaction: discord.Interaction, category: str, timeframe: str):
     conn = create_connection()
     if conn is None:
