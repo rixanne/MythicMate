@@ -24,6 +24,12 @@ intents = discord.Intents.none()  # Start with no intents
 intents.reactions = True    # For reaction handling
 intents.guilds = True      # For basic server info
 
+# Debug: Print all enabled intents
+print("Enabled intents:")
+for intent, enabled in intents:
+    if enabled:
+        print(f"- {intent}")
+
 class MythicMateBot(commands.Bot):
     def __init__(self):
         super().__init__(
@@ -33,6 +39,11 @@ class MythicMateBot(commands.Bot):
             reconnect=True
         )
         self.active_messages = {}
+        # Debug: Print intents being used by the bot
+        print("\nBot intents:")
+        for intent, enabled in self.intents:
+            if enabled:
+                print(f"- {intent}")
 
 # Initialize the bot with a command prefix and intents
 bot = MythicMateBot()
