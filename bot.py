@@ -19,13 +19,24 @@ TOKEN = os.getenv('BOT_TOKEN')
 print(f"Token loaded from environment: {'Yes' if TOKEN else 'No'}")
 print(f"Token length: {len(TOKEN) if TOKEN else 0}")
 
-# Configure the bot with the necessary intents (permissions)
-# intents = discord.Intents.default()
-# intents.reactions = True
-# intents.guilds = True
+# Replace the intents configuration with:
+intents = discord.Intents.none()  # Start with no intents
+intents.reactions = True    # For reaction handling
+intents.guilds = True      # For basic server info
+intents.guild_messages = True  # For sending/receiving messages in servers
+
+class MythicMateBot(commands.Bot):
+    def __init__(self):
+        super().__init__(
+            command_prefix='!',
+            intents=intents,
+            heartbeat_timeout=150.0,
+            reconnect=True
+        )
+        self.active_messages = {}
 
 # Initialize the bot with a command prefix and intents
-bot = commands.Bot(command_prefix='!') # , intents=intents)
+bot = MythicMateBot()
 
 # Define the available dungeons and their abbreviations
 # This dictionary maps full dungeon names to a list of their common abbreviations or shorthand names
