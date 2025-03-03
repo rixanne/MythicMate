@@ -46,6 +46,85 @@ class MythicMateBot(discord.Client):
             if enabled:
                 print(f"- {intent}")
 
+    # Add reaction event handlers
+    async def on_reaction_add(self, reaction, user):
+        """Handles when users add reactions to join or leave the group."""
+        if user == self.user:
+            return
+
+        group_info = active_groups.get(reaction.message.id)
+        if not group_info:
+            return
+
+        group_state = group_info["state"]
+        group_message = group_info["message"]
+        embed = group_info["embed"]
+
+        # Handle role clearing
+        if str(reaction.emoji) == role_emojis["Clear Role"]:
+            role, promoted_user = group_state.remove_user(user)
+            if promoted_user:
+                await group_message.channel.send(
+                    f"{promoted_user.mention} has been promoted from backup to {role}!",
+                    delete_after=10
+                )
+            # Remove all role reactions from the user
+            for role_name, emoji in role_emojis.items():
+                if emoji != role_emojis["Clear Role"]:
+                    await group_message.remove_reaction(emoji, user)
+            await update_group_embed(group_message, embed, group_state)
+            await group_message.remove_reaction(reaction.emoji, user)
+            return
+
+        # Prevent users from selecting multiple roles
+        current_role = group_state.get_user_role(user)
+        if current_role:
+            await group_message.remove_reaction(reaction.emoji, user)
+            await user.send("You can only select one role. Please remove your current role first.")
+            return
+
+        # Handle role selection
+        role_added = False
+        if str(reaction.emoji) == role_emojis["Tank"]:
+            role_added = group_state.add_member("Tank", user)
+        elif str(reaction.emoji) == role_emojis["Healer"]:
+            role_added = group_state.add_member("Healer", user)
+        elif str(reaction.emoji) == role_emojis["DPS"]:
+            role_added = group_state.add_member("DPS", user)
+
+        # Notify user if added to backup
+        if not role_added:
+            await user.send("You've been added to the backup list for this role.")
+
+        await update_group_embed(group_message, embed, group_state)
+
+        # Add completion marker if group is full
+        if group_state.is_complete():
+            await group_message.add_reaction("✅")
+
+    async def on_reaction_remove(self, reaction, user):
+        """Handles when users remove their role reactions."""
+        if user == self.user:
+            return
+
+        group_info = active_groups.get(reaction.message.id)
+        if not group_info:
+            return
+
+        group_state = group_info["state"]
+        group_message = group_info["message"]
+        embed = group_info["embed"]
+
+        # Remove user from their role
+        if str(reaction.emoji) == role_emojis["Tank"] and group_state.members["Tank"] == user:
+            group_state.members["Tank"] = None
+        elif str(reaction.emoji) == role_emojis["Healer"] and group_state.members["Healer"] == user:
+            group_state.members["Healer"] = None
+        elif str(reaction.emoji) == role_emojis["DPS"] and user in group_state.members["DPS"]:
+            group_state.members["DPS"].remove(user)
+
+        await update_group_embed(group_message, embed, group_state)
+
 bot = MythicMateBot()
 
 # Define the available dungeons and their abbreviations
@@ -241,68 +320,6 @@ async def lfm(interaction: discord.Interaction, dungeon: str, key_level: str, ro
         group_state.reminder_task = asyncio.create_task(
             group_state.send_reminder(interaction.channel)
         )
-
-@bot.event
-async def on_reaction_add(reaction, user):
-    """
-    Handles when users add reactions to join or leave the group.
-    
-    Args:
-        reaction: The reaction emoji added
-        user: The user who added the reaction
-    """
-    if user == bot.user:
-        return
-
-    group_info = active_groups.get(reaction.message.id)
-    if not group_info:
-        return
-
-    group_state = group_info["state"]
-    group_message = group_info["message"]
-    embed = group_info["embed"]
-
-    # Handle role clearing
-    if str(reaction.emoji) == role_emojis["Clear Role"]:
-        role, promoted_user = group_state.remove_user(user)
-        if promoted_user:
-            await group_message.channel.send(
-                f"{promoted_user.mention} has been promoted from backup to {role}!",
-                delete_after=10
-            )
-        # Remove all role reactions from the user
-        for role_name, emoji in role_emojis.items():
-            if emoji != role_emojis["Clear Role"]:
-                await group_message.remove_reaction(emoji, user)
-        await update_group_embed(group_message, embed, group_state)
-        await group_message.remove_reaction(reaction.emoji, user)
-        return
-
-    # Prevent users from selecting multiple roles
-    current_role = group_state.get_user_role(user)
-    if current_role:
-        await group_message.remove_reaction(reaction.emoji, user)
-        await user.send("You can only select one role. Please remove your current role first.")
-        return
-
-    # Handle role selection
-    role_added = False
-    if str(reaction.emoji) == role_emojis["Tank"]:
-        role_added = group_state.add_member("Tank", user)
-    elif str(reaction.emoji) == role_emojis["Healer"]:
-        role_added = group_state.add_member("Healer", user)
-    elif str(reaction.emoji) == role_emojis["DPS"]:
-        role_added = group_state.add_member("DPS", user)
-
-    # Notify user if added to backup
-    if not role_added:
-        await user.send("You've been added to the backup list for this role.")
-
-    await update_group_embed(group_message, embed, group_state)
-
-    # Add completion marker if group is full
-    if group_state.is_complete():
-        await group_message.add_reaction("✅")
 
 @bot.event
 async def on_reaction_remove(reaction, user):
