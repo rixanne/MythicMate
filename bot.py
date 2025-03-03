@@ -22,7 +22,7 @@ print(f"Token length: {len(TOKEN) if TOKEN else 0}")
 # Configure the bot with the necessary intents (permissions)
 intents = discord.Intents.default()
 intents.reactions = True
-intents.guilds = True
+# intents.guilds = True
 
 # Initialize the bot with a command prefix and intents
 bot = commands.Bot(command_prefix='!', intents=intents)
