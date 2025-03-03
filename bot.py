@@ -23,6 +23,8 @@ print(f"Token length: {len(TOKEN) if TOKEN else 0}")
 intents = discord.Intents.default()
 intents.reactions = True
 intents.guilds = True
+intents.guild_messages = True
+intents.message_content = False  # Keep this disabled as it's privileged
 
 # Initialize the bot with a command prefix and intents
 bot = commands.Bot(command_prefix='!', intents=intents)
