@@ -8,7 +8,6 @@ import asyncio
 import pytz
 import sqlite3
 from sqlite3 import Error
-import logging
 
 # Load environment variables from .env file
 load_dotenv()
@@ -20,43 +19,13 @@ TOKEN = os.getenv('BOT_TOKEN')
 print(f"Token loaded from environment: {'Yes' if TOKEN else 'No'}")
 print(f"Token length: {len(TOKEN) if TOKEN else 0}")
 
-# Set up logging
-logging.basicConfig(
-    level=logging.DEBUG,
-    format='%(asctime)s [%(levelname)s] %(message)s',
-    force=True  # Force the configuration
-)
-
-# Global dictionary to store active group information
-active_groups = {}
-
-# Initialize with minimal intents
+# Configure the bot with the necessary intents (permissions)
 intents = discord.Intents.default()
-intents.message_content = False
-intents.members = False
-intents.presences = False
-intents.typing = False
+intents.reactions = True
+intents.guilds = True
 
-class MythicMateBot(commands.Bot):
-    def __init__(self):
-        super().__init__(
-            command_prefix='!',
-            intents=intents
-        )
-        self.active_messages = {}
-        self.tree = app_commands.CommandTree(self)
-        logging.info("Bot initialized")
-
-    async def setup_hook(self):
-        logging.info(f'Logged in as {self.user} (ID: {self.user.id})')
-        logging.info(f'Active in {len(self.guilds)} guilds')
-        try:
-            synced = await self.tree.sync()
-            logging.info(f"Synced {len(synced)} commands")
-        except Exception as e:
-            logging.error(f"Error syncing commands: {e}")
-
-bot = MythicMateBot()
+# Initialize the bot with a command prefix and intents
+bot = commands.Bot(command_prefix='!', intents=intents)
 
 # Define the available dungeons and their abbreviations
 # This dictionary maps full dungeon names to a list of their common abbreviations or shorthand names
@@ -96,105 +65,34 @@ role_emojis = {
     "Clear Role": "❌"  # This emoji is used to allow users to clear their selected role
 }
 
+# Event handler for when the bot is ready and connected to Discord
 @bot.event
 async def on_ready():
-    logging.info(f'Logged in as {bot.user} (ID: {bot.user.id})')
-    logging.info(f'Active in {len(bot.guilds)} guilds')
+    print(f'Logged in as {bot.user}')
+    try:
+        synced = await bot.tree.sync()  # Synchronize the command tree with Discord
+        print(f"Synced {len(synced)} commands.")
+    except Exception as e:
+        print(f"Error syncing commands: {e}")
 
-@bot.listen('on_reaction_add')
-async def handle_reaction_add(reaction, user):
-    logging.info(f"Reaction added by {user}: {reaction.emoji}")
-    if user.bot:
-        return
+# Global dictionary to store active groups
+active_groups = {}
 
-    group_info = active_groups.get(reaction.message.id)
-    if not group_info:
-        return
-
-    logging.info("Processing reaction for group")
-    group_state = group_info["state"]
-    group_message = group_info["message"]
-    embed = group_info["embed"]
-
-    # Handle role clearing
-    if str(reaction.emoji) == role_emojis["Clear Role"]:
-        logging.info(f"User {user} clearing role")
-        role, promoted_user = group_state.remove_user(user)
-        if promoted_user:
-            await group_message.channel.send(
-                f"{promoted_user.mention} has been promoted from backup to {role}!",
-                delete_after=10
-            )
-        # Remove all role reactions from the user
-        for role_name, emoji in role_emojis.items():
-            if emoji != role_emojis["Clear Role"]:
-                await group_message.remove_reaction(emoji, user)
-        await update_group_embed(group_message, embed, group_state)
-        await group_message.remove_reaction(reaction.emoji, user)
-        return
-
-    # Prevent users from selecting multiple roles
-    current_role = group_state.get_user_role(user)
-    if current_role:
-        await group_message.remove_reaction(reaction.emoji, user)
-        await user.send("You can only select one role. Please remove your current role first.")
-        return
-
-    # Handle role selection
-    role_added = False
-    if str(reaction.emoji) == role_emojis["Tank"]:
-        role_added = group_state.add_member("Tank", user)
-    elif str(reaction.emoji) == role_emojis["Healer"]:
-        role_added = group_state.add_member("Healer", user)
-    elif str(reaction.emoji) == role_emojis["DPS"]:
-        role_added = group_state.add_member("DPS", user)
-
-    # Notify user if added to backup
-    if not role_added:
-        await user.send("You've been added to the backup list for this role.")
-
-    await update_group_embed(group_message, embed, group_state)
-
-    # Add completion marker if group is full
-    if group_state.is_complete():
-        await group_message.add_reaction("✅")
-
-@bot.listen('on_reaction_remove')
-async def handle_reaction_remove(reaction, user):
-    logging.info(f"Reaction removed by {user}: {reaction.emoji}")
-    if user.bot:
-        return
-
-    group_info = active_groups.get(reaction.message.id)
-    if not group_info:
-        return
-
-    logging.info("Processing reaction removal for group")
-    group_state = group_info["state"]
-    group_message = group_info["message"]
-    embed = group_info["embed"]
-
-    # Remove user from their role
-    if str(reaction.emoji) == role_emojis["Tank"] and group_state.members["Tank"] == user:
-        group_state.members["Tank"] = None
-    elif str(reaction.emoji) == role_emojis["Healer"] and group_state.members["Healer"] == user:
-        group_state.members["Healer"] = None
-    elif str(reaction.emoji) == role_emojis["DPS"] and user in group_state.members["DPS"]:
-        group_state.members["DPS"].remove(user)
-
-    await update_group_embed(group_message, embed, group_state)
-
-# Add debug logging to update_group_embed
 async def update_group_embed(message, embed, group_state):
-    """Updates the embed message with current group composition."""
-    logging.info("Updating group embed")
+    """
+    Updates the embed message with current group composition and backup information.
+    
+    Args:
+        message: The Discord message to update
+        embed: The embed object to modify
+        group_state: Current state of the group including members and backups
+    """
     if not message or not embed or not group_state:
-        logging.warning("Missing required parameters for update_group_embed")
+        print("Missing required parameters for update_group_embed")
         return
         
     try:
         embed.clear_fields()
-        logging.debug("Cleared embed fields")
         
         # Display main role assignments
         embed.add_field(
@@ -208,11 +106,11 @@ async def update_group_embed(message, embed, group_state):
             inline=False
         )
         
-        # Display DPS slots
+        # Display DPS slots (filled or empty)
         dps_value = "\n".join([dps_user.mention for dps_user in group_state.members["DPS"]] + ["None"] * (3 - len(group_state.members["DPS"])))
         embed.add_field(name="⚔️ DPS", value=dps_value, inline=False)
         
-        # Display backup players
+        # Display backup players for each role
         backup_text = ""
         for role, backups in group_state.backups.items():
             if backups:
@@ -221,20 +119,20 @@ async def update_group_embed(message, embed, group_state):
         if backup_text:
             embed.add_field(name="📋 Backups", value=backup_text.strip(), inline=False)
 
-        logging.info("Attempting to edit message")
+        # Changed to use fetch_message and edit
         try:
+            # Fetch a fresh message object before editing
             current_message = await message.channel.fetch_message(message.id)
             await current_message.edit(embed=embed)
-            logging.info("Successfully updated embed")
         except discord.NotFound:
-            logging.error(f"Message {message.id} not found")
+            print("Message not found - it may have been deleted")
         except discord.Forbidden:
-            logging.error("Bot lacks permissions to edit message")
+            print("Bot doesn't have permission to edit the message")
         except Exception as e:
-            logging.error(f"Error updating message: {e}")
+            print(f"Error updating message: {e}")
 
     except Exception as e:
-        logging.error(f"Error in update_group_embed: {e}")
+        print(f"Error in update_group_embed: {e}")
 
 @bot.tree.command(name="lfm", description="Start looking for members for a Mythic+ run.")
 @app_commands.describe(
@@ -322,6 +220,98 @@ async def lfm(interaction: discord.Interaction, dungeon: str, key_level: str, ro
         group_state.reminder_task = asyncio.create_task(
             group_state.send_reminder(interaction.channel)
         )
+
+@bot.event
+async def on_reaction_add(reaction, user):
+    """
+    Handles when users add reactions to join or leave the group.
+    
+    Args:
+        reaction: The reaction emoji added
+        user: The user who added the reaction
+    """
+    if user == bot.user:
+        return
+
+    group_info = active_groups.get(reaction.message.id)
+    if not group_info:
+        return
+
+    group_state = group_info["state"]
+    group_message = group_info["message"]
+    embed = group_info["embed"]
+
+    # Handle role clearing
+    if str(reaction.emoji) == role_emojis["Clear Role"]:
+        role, promoted_user = group_state.remove_user(user)
+        if promoted_user:
+            await group_message.channel.send(
+                f"{promoted_user.mention} has been promoted from backup to {role}!",
+                delete_after=10
+            )
+        # Remove all role reactions from the user
+        for role_name, emoji in role_emojis.items():
+            if emoji != role_emojis["Clear Role"]:
+                await group_message.remove_reaction(emoji, user)
+        await update_group_embed(group_message, embed, group_state)
+        await group_message.remove_reaction(reaction.emoji, user)
+        return
+
+    # Prevent users from selecting multiple roles
+    current_role = group_state.get_user_role(user)
+    if current_role:
+        await group_message.remove_reaction(reaction.emoji, user)
+        await user.send("You can only select one role. Please remove your current role first.")
+        return
+
+    # Handle role selection
+    role_added = False
+    if str(reaction.emoji) == role_emojis["Tank"]:
+        role_added = group_state.add_member("Tank", user)
+    elif str(reaction.emoji) == role_emojis["Healer"]:
+        role_added = group_state.add_member("Healer", user)
+    elif str(reaction.emoji) == role_emojis["DPS"]:
+        role_added = group_state.add_member("DPS", user)
+
+    # Notify user if added to backup
+    if not role_added:
+        await user.send("You've been added to the backup list for this role.")
+
+    await update_group_embed(group_message, embed, group_state)
+
+    # Add completion marker if group is full
+    if group_state.is_complete():
+        await group_message.add_reaction("✅")
+
+@bot.event
+async def on_reaction_remove(reaction, user):
+    """
+    Handles when users remove their role reactions.
+    
+    Args:
+        reaction: The reaction emoji removed
+        user: The user who removed the reaction
+    """
+    if user == bot.user:
+        return
+
+    group_info = active_groups.get(reaction.message.id)
+    if not group_info:
+        return
+
+    group_state = group_info["state"]
+    group_message = group_info["message"]
+    embed = group_info["embed"]
+
+    # Remove user from their role
+    if str(reaction.emoji) == role_emojis["Tank"] and group_state.members["Tank"] == user:
+        group_state.members["Tank"] = None
+    elif str(reaction.emoji) == role_emojis["Healer"] and group_state.members["Healer"] == user:
+        group_state.members["Healer"] = None
+    elif str(reaction.emoji) == role_emojis["DPS"] and user in group_state.members["DPS"]:
+        group_state.members["DPS"].remove(user)
+
+    await update_group_embed(group_message, embed, group_state)
 
 class GroupState:
     """
@@ -671,10 +661,5 @@ async def record_completed_run(group_state, dungeon_name, key_level, guild_id, g
     finally:
         conn.close()
 
-# At the bottom of the file
-if __name__ == "__main__":
-    logging.info("Starting bot...")
-    try:
-        bot.run(TOKEN)
-    except Exception as e:
-        logging.error(f"Error running bot: {e}")
+# Run the bot with the token loaded from the environment variables
+bot.run(TOKEN)
