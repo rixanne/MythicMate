@@ -8,6 +8,7 @@ import asyncio
 import pytz
 import sqlite3
 from sqlite3 import Error
+import logging
 
 # Load environment variables from .env file
 load_dotenv()
@@ -19,17 +20,23 @@ TOKEN = os.getenv('BOT_TOKEN')
 print(f"Token loaded from environment: {'Yes' if TOKEN else 'No'}")
 print(f"Token length: {len(TOKEN) if TOKEN else 0}")
 
-# Initialize with absolute minimum intents
+# Set up logging
+logging.basicConfig(
+    level=logging.DEBUG,  # Set to DEBUG for maximum information
+    format='%(asctime)s [%(levelname)s] %(message)s'
+)
+
+# Initialize intents
 intents = discord.Intents.none()
 intents.reactions = True
 intents.guilds = True
+intents.guild_messages = True  # Add this for message handling
+intents.message_content = False  # Explicitly disable privileged intent
 
-# Debug: Print raw intents value
-print(f"Raw intents value: {intents.value}")
-print("Enabled intents:")
-for intent, enabled in intents:
-    if enabled:
-        print(f"- {intent}")
+logging.info(f"Intents configuration:")
+logging.info(f"- Reactions: {intents.reactions}")
+logging.info(f"- Guilds: {intents.guilds}")
+logging.info(f"- Guild Messages: {intents.guild_messages}")
 
 class MythicMateBot(discord.Client):
     def __init__(self):
@@ -39,12 +46,15 @@ class MythicMateBot(discord.Client):
         )
         self.tree = app_commands.CommandTree(self)
         self.active_messages = {}
+        logging.info("Bot initialized")
 
     async def setup_hook(self):
-        print("\nBot intents:")
-        for intent, enabled in self.intents:
-            if enabled:
-                print(f"- {intent}")
+        logging.info(f'Logged in as {self.user} (ID: {self.user.id})')
+        try:
+            synced = await self.tree.sync()
+            logging.info(f"Synced {len(synced)} commands")
+        except Exception as e:
+            logging.error(f"Error syncing commands: {e}")
 
 bot = MythicMateBot()
 
@@ -89,12 +99,13 @@ role_emojis = {
 # Event handler for when the bot is ready and connected to Discord
 @bot.event
 async def on_ready():
-    print(f'Logged in as {bot.user}')
+    logging.info("Bot is ready!")
+    logging.info(f"Active in {len(bot.guilds)} guilds")
     try:
         synced = await bot.tree.sync()  # Synchronize the command tree with Discord
-        print(f"Synced {len(synced)} commands.")
+        logging.info(f"Synced {len(synced)} commands.")
     except Exception as e:
-        print(f"Error syncing commands: {e}")
+        logging.error(f"Error syncing commands: {e}")
 
 # Global dictionary to store active groups
 active_groups = {}
@@ -103,19 +114,25 @@ active_groups = {}
 @bot.event
 async def on_reaction_add(reaction, user):
     """Handles when users add reactions to join or leave the group."""
+    logging.info(f"Reaction added - Emoji: {reaction.emoji}, User: {user}")
+    
     if user == bot.user:
+        logging.debug("Reaction was from bot, ignoring")
         return
 
     group_info = active_groups.get(reaction.message.id)
     if not group_info:
+        logging.debug(f"No group found for message ID {reaction.message.id}")
         return
 
+    logging.info("Processing reaction for group")
     group_state = group_info["state"]
     group_message = group_info["message"]
     embed = group_info["embed"]
 
     # Handle role clearing
     if str(reaction.emoji) == role_emojis["Clear Role"]:
+        logging.info(f"User {user} clearing role")
         role, promoted_user = group_state.remove_user(user)
         if promoted_user:
             await group_message.channel.send(
@@ -159,13 +176,18 @@ async def on_reaction_add(reaction, user):
 @bot.event
 async def on_reaction_remove(reaction, user):
     """Handles when users remove their role reactions."""
+    logging.info(f"Reaction removed - Emoji: {reaction.emoji}, User: {user}")
+    
     if user == bot.user:
+        logging.debug("Reaction was from bot, ignoring")
         return
 
     group_info = active_groups.get(reaction.message.id)
     if not group_info:
+        logging.debug(f"No group found for message ID {reaction.message.id}")
         return
 
+    logging.info("Processing reaction removal for group")
     group_state = group_info["state"]
     group_message = group_info["message"]
     embed = group_info["embed"]
@@ -183,13 +205,14 @@ async def on_reaction_remove(reaction, user):
 # Add debug logging to update_group_embed
 async def update_group_embed(message, embed, group_state):
     """Updates the embed message with current group composition."""
-    print("Updating group embed...")  # Debug log
+    logging.info("Updating group embed")
     if not message or not embed or not group_state:
-        print("Missing required parameters for update_group_embed")
+        logging.warning("Missing required parameters for update_group_embed")
         return
         
     try:
         embed.clear_fields()
+        logging.debug("Cleared embed fields")
         
         # Display main role assignments
         embed.add_field(
@@ -216,17 +239,20 @@ async def update_group_embed(message, embed, group_state):
         if backup_text:
             embed.add_field(name="📋 Backups", value=backup_text.strip(), inline=False)
 
-        print("Attempting to edit message...")  # Debug log
+        logging.info("Attempting to edit message")
         try:
-            # Fetch fresh message and update
             current_message = await message.channel.fetch_message(message.id)
             await current_message.edit(embed=embed)
-            print("Successfully updated embed")  # Debug log
+            logging.info("Successfully updated embed")
+        except discord.NotFound:
+            logging.error(f"Message {message.id} not found")
+        except discord.Forbidden:
+            logging.error("Bot lacks permissions to edit message")
         except Exception as e:
-            print(f"Error updating message: {e}")  # Debug log
+            logging.error(f"Error updating message: {e}")
 
     except Exception as e:
-        print(f"Error in update_group_embed: {e}")  # Debug log
+        logging.error(f"Error in update_group_embed: {e}")
 
 @bot.tree.command(name="lfm", description="Start looking for members for a Mythic+ run.")
 @app_commands.describe(
@@ -665,4 +691,5 @@ async def record_completed_run(group_state, dungeon_name, key_level, guild_id, g
 
 # At the bottom of the file
 if __name__ == "__main__":
+    logging.info("Starting bot...")
     bot.run(TOKEN)
