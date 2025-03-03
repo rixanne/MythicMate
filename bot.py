@@ -19,33 +19,31 @@ TOKEN = os.getenv('BOT_TOKEN')
 print(f"Token loaded from environment: {'Yes' if TOKEN else 'No'}")
 print(f"Token length: {len(TOKEN) if TOKEN else 0}")
 
-# Replace the intents configuration with:
-intents = discord.Intents.none()  # Start with no intents
-intents.reactions = True    # For reaction handling
-intents.guilds = True      # For basic server info
+# Initialize with absolute minimum intents
+intents = discord.Intents.none()
+intents.reactions = True
+intents.guilds = True
 
-# Debug: Print all enabled intents
 print("Enabled intents:")
 for intent, enabled in intents:
     if enabled:
         print(f"- {intent}")
 
-class MythicMateBot(commands.Bot):
+class MythicMateBot(discord.Client):
     def __init__(self):
         super().__init__(
-            command_prefix='!',
             intents=intents,
-            heartbeat_timeout=150.0,
-            reconnect=True
+            heartbeat_timeout=150.0
         )
+        self.tree = app_commands.CommandTree(self)
         self.active_messages = {}
-        # Debug: Print intents being used by the bot
+
+    async def setup_hook(self):
         print("\nBot intents:")
         for intent, enabled in self.intents:
             if enabled:
                 print(f"- {intent}")
 
-# Initialize the bot with a command prefix and intents
 bot = MythicMateBot()
 
 # Define the available dungeons and their abbreviations
@@ -682,5 +680,6 @@ async def record_completed_run(group_state, dungeon_name, key_level, guild_id, g
     finally:
         conn.close()
 
-# Run the bot with the token loaded from the environment variables
-bot.run(TOKEN)
+# At the bottom of the file
+if __name__ == "__main__":
+    bot.run(TOKEN)
