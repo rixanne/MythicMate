@@ -27,6 +27,9 @@ logging.basicConfig(
     force=True  # Force the configuration
 )
 
+# Global dictionary to store active group information
+active_groups = {}
+
 # Initialize with minimal intents
 intents = discord.Intents.default()
 intents.message_content = False
