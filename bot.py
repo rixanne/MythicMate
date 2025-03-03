@@ -23,7 +23,6 @@ print(f"Token length: {len(TOKEN) if TOKEN else 0}")
 intents = discord.Intents.none()  # Start with no intents
 intents.reactions = True    # For reaction handling
 intents.guilds = True      # For basic server info
-intents.guild_messages = True  # For sending/receiving messages in servers
 
 class MythicMateBot(commands.Bot):
     def __init__(self):
