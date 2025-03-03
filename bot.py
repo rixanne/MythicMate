@@ -20,12 +20,12 @@ print(f"Token loaded from environment: {'Yes' if TOKEN else 'No'}")
 print(f"Token length: {len(TOKEN) if TOKEN else 0}")
 
 # Configure the bot with the necessary intents (permissions)
-intents = discord.Intents.default()
-intents.reactions = True
+# intents = discord.Intents.default()
+# intents.reactions = True
 # intents.guilds = True
 
 # Initialize the bot with a command prefix and intents
-bot = commands.Bot(command_prefix='!', intents=intents)
+bot = commands.Bot(command_prefix='!') # , intents=intents)
 
 # Define the available dungeons and their abbreviations
 # This dictionary maps full dungeon names to a list of their common abbreviations or shorthand names
