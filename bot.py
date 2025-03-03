@@ -24,7 +24,13 @@ intents = discord.Intents.default()
 intents.reactions = True
 intents.guilds = True
 intents.guild_messages = True
-intents.message_content = False  # Keep this disabled as it's privileged
+intents.message_content = False
+
+print("Intents configured:")
+print(f"- Reactions: {intents.reactions}")
+print(f"- Guilds: {intents.guilds}")
+print(f"- Guild Messages: {intents.guild_messages}")
+print(f"- Message Content: {intents.message_content}")
 
 # Initialize the bot with a command prefix and intents
 bot = commands.Bot(command_prefix='!', intents=intents)
@@ -70,7 +76,7 @@ role_emojis = {
 # Event handler for when the bot is ready and connected to Discord
 @bot.event
 async def on_ready():
-    print(f'Logged in as {bot.user}')
+    print(f'Bot is ready! Logged in as {bot.user}')
     try:
         synced = await bot.tree.sync()  # Synchronize the command tree with Discord
         print(f"Synced {len(synced)} commands.")
@@ -144,16 +150,7 @@ async def update_group_embed(message, embed, group_state):
     schedule="When to run (e.g., 'now' or 'YYYY-MM-DD HH:MM' in server time)"
 )
 async def lfm(interaction: discord.Interaction, dungeon: str, key_level: str, role: str, schedule: str):
-    """
-    Creates a new Mythic+ group and manages signups through reactions.
-    
-    Args:
-        interaction: The Discord interaction context
-        dungeon: Name or abbreviation of the dungeon
-        key_level: Difficulty level of the key
-        role: Initial role of the group creator
-        schedule: When the group will start
-    """
+    print(f"LFM command received from {interaction.user}")
     print("Starting LFM command...")
     
     # Validate dungeon name
@@ -223,22 +220,23 @@ async def lfm(interaction: discord.Interaction, dungeon: str, key_level: str, ro
             group_state.send_reminder(interaction.channel)
         )
 
+    print(f"Created group message with ID: {group_message.id}")
+    print(f"Active groups after creation: {list(active_groups.keys())}")
+
 @bot.event
 async def on_reaction_add(reaction, user):
-    """
-    Handles when users add reactions to join or leave the group.
-    
-    Args:
-        reaction: The reaction emoji added
-        user: The user who added the reaction
-    """
+    print(f"Reaction detected - Emoji: {reaction.emoji}, User: {user}, Message ID: {reaction.message.id}")
     if user == bot.user:
+        print("Reaction was from bot, ignoring")
         return
 
     group_info = active_groups.get(reaction.message.id)
     if not group_info:
+        print(f"No group found for message ID {reaction.message.id}")
+        print(f"Active groups: {list(active_groups.keys())}")
         return
 
+    print(f"Found group info for message {reaction.message.id}")
     group_state = group_info["state"]
     group_message = group_info["message"]
     embed = group_info["embed"]
@@ -314,6 +312,11 @@ async def on_reaction_remove(reaction, user):
         group_state.members["DPS"].remove(user)
 
     await update_group_embed(group_message, embed, group_state)
+
+@bot.event
+async def on_message(message):
+    print(f"Message received: {message.content[:20]}...")
+    await bot.process_commands(message)
 
 class GroupState:
     """
