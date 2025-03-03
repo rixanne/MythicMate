@@ -24,6 +24,8 @@ intents = discord.Intents.none()
 intents.reactions = True
 intents.guilds = True
 
+# Debug: Print raw intents value
+print(f"Raw intents value: {intents.value}")
 print("Enabled intents:")
 for intent, enabled in intents:
     if enabled:
