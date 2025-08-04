@@ -5,7 +5,7 @@ All notable changes to MythicMate will be documented in this file.
 ## [1.1.2] - 2025-08-04
 
 ### Updated
-- Added Season 3 dungeons and removed previous seasons dungeons (change made by Rixanne, not the og author)
+- Added Season 3 dungeons and removed previous seasons dungeons (change made by Rixanne, not the author Beel)
 
 ## [1.1.1] - 2025-01-23
 
